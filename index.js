@@ -6,7 +6,10 @@ import { checkAuthorization, handleValidationErrors } from './utils/index.js';
 import { postController, userController, commentController } from './controllers/index.js';
 import multer from 'multer';
 import cors from 'cors';
+import { upload } from './cloudinaryConfig.js';
+import dotenv from 'dotenv';
 
+dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -19,44 +22,17 @@ const app = express();
 
 app.use(express.json());
 app.use(cors());
-app.use('/uploads', express.static('uploads'));
 
-const PORT = 4444;
+const PORT = process.env.PORT || 4444;
 
-//  Обработчик сохранения изображения поста
-const storagePost = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/post');
-    },
-    filename: (req, file, cb) => {
-        const imageName = file.originalname;
-        cb(null, imageName);
+// Один универсальный эндпоинт для загрузки всех изображений
+app.post('/upload', checkAuthorization, upload.single('image'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Файл не загружен' });
     }
-});
-
-//  Обработчик сохранения изображения аватара
-const storageAvatar = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/avatar');
-    },
-    filename: (req, file, cb) => {
-        const imageName = file.originalname;
-        cb(null, imageName);
-    }
-});
-
-const uploadPostImg = multer({ storage: storagePost });
-const uploadAvatarImg = multer({ storage: storageAvatar });
-
-app.post('/upload/post', checkAuthorization, uploadPostImg.single('image'), (req, res) => {
+    
     res.json({
-        url: `/uploads/post/${req.file.originalname}`
-    });
-});
-
-app.post('/upload/avatar', uploadAvatarImg.single('image'), (req, res) => {
-    res.json({
-        url: `/uploads/avatar/${req.file.originalname}`
+        url: req.file.path  // Cloudinary возвращает прямую URL-ссылку
     });
 });
 
@@ -83,5 +59,5 @@ app.listen(PORT, err => {
         return console.log(err);
     }
 
-    console.log('Server OK');
+    console.log(`Server OK on port ${PORT}`);
 });
