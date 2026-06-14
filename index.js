@@ -26,7 +26,7 @@ app.use(cors());
 const PORT = process.env.PORT || 4444;
 
 // Один универсальный эндпоинт для загрузки всех изображений
-app.post('/upload', checkAuthorization, upload.single('image'), (req, res) => {
+app.post('/upload', upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'Файл не загружен' });
     }
