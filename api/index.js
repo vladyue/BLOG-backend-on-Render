@@ -18,9 +18,6 @@ cloudinary.config({
 
 const app = express();
 
-// Подключение к MongoDB
-const MONGODB_URI = process.env.MONGODB_URI;
-
 let cachedDb = null;
 
 async function connectToDatabase() {
@@ -28,7 +25,7 @@ async function connectToDatabase() {
     return cachedDb;
   }
   
-  await mongoose.connect(MONGODB_URI);
+  await mongoose.connect('mongodb+srv://vladnimbus3_db_user:w3u6z1rXdLiA9Ny6@cluster0.b9q2gee.mongodb.net/blog?appName=Cluster0');
   cachedDb = mongoose.connection;
   console.log('MongoDB OK!');
   return cachedDb;
