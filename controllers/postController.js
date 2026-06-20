@@ -46,35 +46,46 @@ export const update = async (req, res) => {
 export const remove = async (req, res) => {
     try {
         const postId = req.params.id;
+        const userId = req.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                message: 'Не авторизован'
+            });
+        }
 
         const post = await PostModel.findById(postId).populate('user').exec();
 
-        if(!post) {
-            throw new Error('Статья не найдена');
+        if (!post) {
+            return res.status(404).json({
+                message: 'Статья не найдена'
+            });
         }
 
-        if(post.user.toObject()._id === req.userId) {
-            const doc = await PostModel.findOneAndDelete(
-                {
-                    _id: postId
-                }
-            );
-
-            if(!doc) {
-                res.status(404).json({
-                    message: 'Не удалось удалить статью'
-                })
-            }
+        if (post.user._id.toString() !== userId) {
+            return res.status(403).json({
+                message: 'У вас нет прав на удаление этой статьи'
+            });
         }
 
-        res.json({
-            success: true
+        const doc = await PostModel.findByIdAndDelete(postId);
+
+        if (!doc) {
+            return res.status(404).json({
+                message: 'Не удалось удалить статью'
+            });
+        }
+
+        console.log('Статья удалена:', doc);
+
+        return res.json({
+            success: true,
+            message: 'Статья успешно удалена'
         });
 
     } catch(err) {
-        console.log(err);
-
-        res.status(500).json({
+        console.log('Ошибка удаления статьи:', err);
+        return res.status(500).json({
             message: 'Не удалось удалить статью'
         });
     }
