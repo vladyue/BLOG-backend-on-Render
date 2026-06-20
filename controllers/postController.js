@@ -47,15 +47,24 @@ export const remove = async (req, res) => {
     try {
         const postId = req.params.id;
 
-        const doc = await PostModel.findOneAndDelete(
-            {
-                _id: postId
-            });
+        const post = await PostModel.findById(postId).populate('user').exec();
 
-        if(!doc) {
-            res.status(404).json({
-                message: 'Не удалось удалить статью'
-            })
+        if(!post) {
+            throw new Error('Статья не найдена');
+        }
+
+        if(post.user.toObject()._id === req.userId) {
+            const doc = await PostModel.findOneAndDelete(
+                {
+                    _id: postId
+                }
+            );
+
+            if(!doc) {
+                res.status(404).json({
+                    message: 'Не удалось удалить статью'
+                })
+            }
         }
 
         res.json({
@@ -94,7 +103,7 @@ export const getOne = async (req, res) => {
             }
 
             const comments = await commentController.getCommentsOnePost(req.params.id);
-
+console.log(comments);
             const doc = document.toObject();
             
             doc.createdAt = format(new Date(doc.createdAt), "d MMMM yyyy 'год' HH:mm:ss", { locale: ru });

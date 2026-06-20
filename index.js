@@ -4,7 +4,6 @@ import mongoose from 'mongoose';
 import { registerValidation, loginValidation, postCreateValidation, commentValidation } from './validations.js';
 import { checkAuthorization, handleValidationErrors } from './utils/index.js';
 import { postController, userController, commentController } from './controllers/index.js';
-import multer from 'multer';
 import cors from 'cors';
 import { upload } from './cloudinaryConfig.js';
 import dotenv from 'dotenv';
@@ -53,6 +52,7 @@ app.get('/posts/:id/edit', postController.getEdit);
 
 //  commentController
 app.post('/addComment', checkAuthorization, commentValidation, handleValidationErrors, commentController.addComment);
+app.delete('/deleteComment/:id', checkAuthorization, commentController.deleteComment);
 
 app.listen(PORT, err => {
     if(err) {

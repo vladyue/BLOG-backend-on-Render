@@ -61,3 +61,52 @@ export const commentsCount = async (postsId) => {
         return [];
     }
 };
+
+//  Удаление комментария
+export const deleteComment = async (req, res) => {
+    try {
+        const commentId = req.params.id;
+        const userId = req.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                message: 'Не авторизован'
+            });
+        }
+
+        const comment = await CommentModel.findById(commentId).populate('userId').exec();
+
+        if (!comment) {
+            return res.status(404).json({
+                message: 'Комментарий не найден'
+            });
+        }
+
+        if (comment.userId._id.toString() !== userId) {
+            return res.status(403).json({
+                message: 'У вас нет прав на удаление этого комментария'
+            });
+        }
+
+        const doc = await CommentModel.findByIdAndDelete(commentId);
+
+        if (!doc) {
+            return res.status(404).json({
+                message: 'Не удалось удалить комментарий'
+            });
+        }
+
+        console.log('Комментарий удален:', doc);
+
+        return res.json({
+            success: true,
+            message: 'Комментарий успешно удален'
+        });
+
+    } catch(err) {
+        console.log('Ошибка удаления комментария:', err);
+        return res.status(500).json({
+            message: 'Не удалось удалить комментарий'
+        });
+    }
+};
