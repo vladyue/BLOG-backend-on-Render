@@ -3,10 +3,32 @@ import { commentController } from './index.js';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
+
 //  patch/posts/:id
 export const update = async (req, res) => {
     try {
         const postId = req.params.id;
+        const userId = req.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                message: 'Не авторизован'
+            });
+        }
+
+        const post = await PostModel.findById(postId).populate('user').exec();
+
+        if (!post) {
+            return res.status(404).json({
+                message: 'Статья не найдена'
+            });
+        }
+
+        if (post.user._id.toString() !== userId) {
+            return res.status(403).json({
+                message: 'У вас нет прав на редактирование этой статьи'
+            });
+        }
 
         const doc = await PostModel.updateOne(
             {
@@ -21,7 +43,7 @@ export const update = async (req, res) => {
             }
         );
 
-        if(!doc.matchedCount) {
+        if (!doc.matchedCount) {
             console.log(doc);
 
             return res.status(500).json({
@@ -29,13 +51,15 @@ export const update = async (req, res) => {
             });
         }
 
+        console.log('Статья обновлена:', postId);
+
         res.json({
-            success: true
+            success: true,
+            message: 'Статья успешно обновлена'
         });
 
     } catch(err) {
-        console.log(err);
-
+        console.log('Ошибка обновления статьи:', err);
         res.status(500).json({
             message: 'Не удалось обновить статью'
         });
@@ -69,6 +93,7 @@ export const remove = async (req, res) => {
         }
 
         const doc = await PostModel.findByIdAndDelete(postId);
+        const commentsResult = await commentController.deleteCommentsByPostId(postId);
 
         if (!doc) {
             return res.status(404).json({
@@ -77,10 +102,10 @@ export const remove = async (req, res) => {
         }
 
         console.log('Статья удалена:', doc);
+        console.log(commentsResult);
 
         return res.json({
-            success: true,
-            message: 'Статья успешно удалена'
+            success: true
         });
 
     } catch(err) {
@@ -114,7 +139,7 @@ export const getOne = async (req, res) => {
             }
 
             const comments = await commentController.getCommentsOnePost(req.params.id);
-console.log(comments);
+
             const doc = document.toObject();
             
             doc.createdAt = format(new Date(doc.createdAt), "d MMMM yyyy 'год' HH:mm:ss", { locale: ru });
@@ -170,18 +195,38 @@ console.log(result)
     }
 };
 
+//export const getTags = async (req, res) => {
+//    try {
+//        const posts = await PostModel.find().limit(5).exec();
+//
+//        console.log(posts);
+//
+//        const tags = posts.map(obj => obj.tags).flat().slice(0, 5);
+//
+//        res.json(tags);
+//    } catch(err) {
+//        console.log(err);
+//
+//        res.status(500).json({
+//            message: 'Не удалось получить теги'
+//        });
+//    }
+//};
+
+//  get/tags
 export const getTags = async (req, res) => {
     try {
-        const posts = await PostModel.find().limit(5).exec();
+        const tags = await PostModel.aggregate([
+            { $sample: { size: 5 } }, // Выбираем 5 случайных постов
+            { $unwind: '$tags' }, // Разворачиваем массив тегов
+            { $group: { _id: '$tags' } }, // Группируем по уникальным тегам
+            { $sample: { size: 5 } }, // Выбираем 5 случайных тегов
+            { $project: { _id: 0, tag: '$_id' } } // Форматируем вывод
+        ]);
 
-        console.log(posts);
-
-        const tags = posts.map(obj => obj.tags).flat().slice(0, 5);
-
-        res.json(tags);
+        res.json(tags.map(t => t.tag));
     } catch(err) {
         console.log(err);
-
         res.status(500).json({
             message: 'Не удалось получить теги'
         });

@@ -110,3 +110,22 @@ export const deleteComment = async (req, res) => {
         });
     }
 };
+
+//  Удаление комментариев удаляемого поста
+export const deleteCommentsByPostId = async (postId) => {
+    try {
+
+        const result = await CommentModel.deleteMany({ postId: postId });
+
+        return {
+            success: true,
+            deletedCount: result.deletedCount
+        };
+
+    } catch (error) {
+
+        console.log('Ошибка при удалении комментариев:', error);
+        throw new Error('Не удалось удалить комментарии');
+    
+    }
+};
